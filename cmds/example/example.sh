@@ -7,6 +7,7 @@ help=("example", "A long description of the script.
 
 
 execute() {
+	echo $(pwd)
     echo $one
     echo $two
 }

@@ -245,7 +245,21 @@ lib_argument_parse() {
 					lib_error "ERROR: missing value for flag ${r_args[i]}"
 					lib_print_help_and_exit
 				fi
-				eval "$var_name=${r_args[i+1]}"
+				# a bit of hairyness here requires us to add escaped quotes.
+				# r_args[i+1] can be a multi-word value such as "one two".
+				# if we plainly expand ${r_args[i+1]} we obtain the multi-word
+				# value without quotes: one two.
+				# If we fed the plainly expanded value directly to the eval
+				# we'd wind up with $var_name=one two, the parser would assign
+				# 'one' to $var_name and then likely error as it tries to parse
+				# 'two' as a command.
+				#
+				# to support mult-word values we need to wrap them in quotes
+				# so the eval statement expands to $var_name="one two".
+				value=\""${r_args[i+1]}"\"
+				# this is where run time arguments become global variables for
+				# use in scripts.
+				eval "$var_name=$value"
 			fi
 
 			found=true
