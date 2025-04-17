@@ -197,7 +197,9 @@ Variables must start with a letter and only contain letters, numbers, and the
 
 `options`: A comma separated list of options between brackets. Only two options
 exist currently:
+
 `o` - optional argument
+
 `b` - boolean argument (does not require a following value)
 If both options are desired a comma must separate them `[o,b]`
 
@@ -209,7 +211,6 @@ Here is an example arguments array:
 args=("--one:first argument in zsh's _describe format" \
       "--two:[b,o] second argument with argument options (boolean, optional)")
 ```
-
 
 ## Description and help
 
@@ -234,6 +235,35 @@ help=("example", $(cat $CMDS_DIR/.description.txt))
 
 Notice the use of the hidden file, this ensures `cmds` does not print the file
 as a possible subcommand.
+
+## Argument forwarding
+
+The `cmds` framework provides argument forwarding implicitly to all scripts.
+
+Any arguments provided after the "--" (read: argument forwarding argument) will
+be fed into an array called $forwarded.
+
+Script authors can then use this array to forward arguments to another binary.
+
+For example, say you are writing a kubectl wrapper.
+
+In your script you can write the following `execute` function:
+
+```sh
+execute() {
+    kubectl $forwarded
+}
+```
+
+It is then possible to call this script with "--" and directly pass arguments
+to the kubectl command.
+
+```sh
+$> cmds k8s ctl.sh -- get pods
+```
+
+If you are interested in the details or alternatives to this approach read
+the comment for commit: 81086f51
 
 # CMDS-FRAMEWORK in detail
 
