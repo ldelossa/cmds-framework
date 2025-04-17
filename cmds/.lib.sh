@@ -166,12 +166,28 @@ lib_argument_parse() {
 		fi
 	done
 
+	# always add this hidden argument which allows scripts to forward arguments.
+	#
+	# if any script invocation has the plain '--' flag with no other characters
+	# any following flags and values are placed into the $forwarded array that
+	# is available to scripts.
+	args+=("--:[o] Forward arguments to the script")
+	forwarded=()
+
 	# iterate over arguments our script wants and see if the runtime arguments
 	# are provided.
 	for arg in "${args[@]}"; do
+		# set to true if $arg is found in the run-time args.
 		local found=false
+		# set to true if $arg is an optional argument
 		local is_optional=false
+		# set to true if $arg is a boolean argument
 		local is_bool=false
+		# set to true if the parser has encountered the run-time argument
+		# "--", this short circuits the nested runtime loop and feeds all
+		# further run-time arguments into the $forwarded array which is
+		# available to script authors.
+		local argument_forwarding=false
 
 		# remove description from _describe argument spec, extracting
 		# the argument name. E.g: --c:[b,o]description for c command =>
@@ -210,6 +226,16 @@ lib_argument_parse() {
 		# sans the "--" prefix.
 		for ((i=1; i <= ${#r_args[@]}; i++)); do
 			r_arg="${r_args[i]}"
+
+			if [[ "$r_arg" == "--" ]]; then
+				argument_forwarding=true
+				continue
+			fi
+
+			if [[ $argument_forwarding == true ]]; then
+				forwarded+=("${r_args[i]}")
+				continue
+			fi
 
 			if [[ "$r_arg" != "$e_arg" ]]; then
 				continue
@@ -270,6 +296,8 @@ lib_argument_parse() {
 		# our unset array, we'll log it out at the end.
 		if [[ $found == false ]] && [[ $is_optional == false ]]; then
 			local var_name="${e_arg#--}"
+			# (P)+ expands var_name into another variable (P) and then checks
+			# if that variable is defined (+)
 			if [[ ${(P)+var_name} -eq 0 ]]; then
 				unset+=("$arg")
 			fi
