@@ -74,19 +74,23 @@ lib_warning() {
 # $1: summary string describing subcommand
 # $2: subcommand directory
 lib_describe() {
-	# grab each subcommad's descriptions by sourcing each script and reading
-	# the $desc variable.
+	# iterate over subcomman directory, if we find another subcommand directory
+	# source it's description to add to the cmds array, if we find a file
+	# source it for the same reason.
 	summary="$1"
 	dir="$2"
 	local -a cmds=()
-	for f in $(ls $dir); do
-		if [[ -d $dir/$f ]]; then
-			source $dir/$f/.description
-		else
-			source $dir/$f
-		fi
-		cmds+=("$f\t$desc\n")
-	done
+	if [[ -d $dir ]]; then
+        for f in "$dir"/*; do
+			if [[ -d "$dir/$f" ]] && [[ -f "$dir/$f/.description" ]]; then
+				source "$dir/$f/.description"
+				cmds+=("$f\t$desc\n")
+			elif [[ -f "$dir/$f" ]]; then
+				source "$dir/$f"
+				cmds+=("$f\t$desc\n")
+			fi
+		done
+	fi
 
 	cat <<EOF
 SUMMARY:
@@ -416,7 +420,11 @@ cmds() {(
 	# if its a directory source and print .description
 	if [[ -d $CMD_BUFFER ]]; then
 		# source the description file and print $desc variable
-		source $CMD_BUFFER/.description
+		if [[ -f "$CMD_BUFFER/.description" ]]; then
+			source $CMD_BUFFER/.description
+		else
+			desc="Create a .description file to provide a summary for this subcommand"
+		fi
 		lib_describe $desc $CMD_BUFFER
 		return
 	fi
